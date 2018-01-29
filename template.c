@@ -4,15 +4,12 @@
 
 /*Macros for constants*/
 #define INIT_BUF_SIZE 10000
-#define MAX_INT_STR_LEN 20
 
 /*Function-like macros*/
-#define MALLOC(newbuf, bufsize, logbuf) if ((rc = str_malloc(newbuf, bufsize, \
-        logbuf)) != SUCCESS) return rc
-#define CAT(dest, source, logbuf) if ((rc = str_cat(dest, source, \
-        logbuf)) != SUCCESS) return rc
-#define TESTCASE(func, logbuf, testcount) if ((rc = func(logbuf)) != SUCCESS) \
-                                                    return rc; testcount++
+#define CAT(dest, source, logbuf) do { if ((rc = str_cat(dest, source, \
+        logbuf)) != SUCCESS) return rc; } while(0)
+#define TESTCASE(func, logbuf, testcount) do { if ((rc = func(logbuf)) !=  \
+    SUCCESS) return rc; testcount++; } while(0) 
 /*Return codes*/
 typedef enum {
   SUCCESS,
@@ -47,8 +44,8 @@ td_rc test_str_cat(struct strbuff *logbuf);
 int main(int argc, char** argv){
   td_rc rc = ERR_RC_NOT_SET;
   struct strbuff logbuf;
-  MALLOC(&logbuf, INIT_BUF_SIZE, NULL);
-  logbuf.size = INIT_BUF_SIZE;
+  if ((rc = str_malloc(&logbuf, INIT_BUF_SIZE, NULL)) != SUCCESS)
+    return rc;
   if ((rc = str_copy(&logbuf, "content-type: text/html\n\n", NULL)) 
       == SUCCESS) {
     if (argc > 1)
@@ -90,8 +87,8 @@ td_rc str_copy(struct strbuff *dest, char *source, struct strbuff *logbuf){
     /*If if the source string is longer than the destion buffer, 
      * write error to log if supplied otherwise write to standard output*/
     char errmes[100];
-    sprintf(errmes, "string copy failed : source length %lu > \
-        dest allocated space %lu\n", (unsigned long)sourcelen, \
+    sprintf(errmes, "string copy failed : source length %lu > "
+        "dest allocated space %lu\n", (unsigned long)sourcelen, 
         (unsigned long)dest->size); 
     if (!logbuf)
       printf("%s", errmes);
@@ -113,8 +110,8 @@ td_rc str_cat(struct strbuff *dest, char *source, struct strbuff *logbuf){
      * destination buffer, write error to log if supplied otherwise write 
      * to standard output*/
     char errmes[100];
-    sprintf(errmes, "string concatenation failed : source length %lu > \
-        dest free space %lu\n", (unsigned long)sourcelen, \
+    sprintf(errmes, "string concatenation failed : source length %lu > "
+        "dest free space %lu\n", (unsigned long)sourcelen, 
         (unsigned long)destfree); 
     rc = ERR_STR_CAT;
     if (!logbuf)
@@ -131,7 +128,7 @@ td_rc str_cat(struct strbuff *dest, char *source, struct strbuff *logbuf){
 td_rc test_all(struct strbuff *logbuf){
   td_rc rc = ERR_RC_NOT_SET;
   int testcount = 0;
-  char rc_str[MAX_INT_STR_LEN];
+  char rc_str[20];
   /*If a test case fails, stop further processing and output the log, 
    * otherwise output a test summary*/
   TESTCASE(test_str_malloc, logbuf, testcount);
@@ -147,7 +144,8 @@ td_rc test_all(struct strbuff *logbuf){
 td_rc test_str_malloc(struct strbuff* logbuf){
   td_rc rc = ERR_RC_NOT_SET;
   struct strbuff teststr;
-  MALLOC(&teststr, 5, logbuf);
+  if ((rc = str_malloc(&teststr, 5, logbuf)) != 0)
+    return rc;
   if (teststr.size == 5)
     rc = SUCCESS;
   else rc = ERR_STR_MALLOC;
@@ -158,7 +156,8 @@ td_rc test_str_malloc(struct strbuff* logbuf){
 td_rc test_str_copy(struct strbuff* logbuf){
   td_rc rc = ERR_RC_NOT_SET;
   struct strbuff teststr;
-  MALLOC(&teststr, 7, logbuf);
+  if ((rc = str_malloc(&teststr, 4, logbuf)) != 0)
+    return rc;
   if ((rc = str_copy(&teststr, "foo", logbuf)) == SUCCESS) {
     if (strcmp(teststr.str, "foo")) 
       rc = ERR_STR_COPY;
@@ -176,7 +175,8 @@ td_rc test_str_copy(struct strbuff* logbuf){
 td_rc test_str_cat(struct strbuff* logbuf){
   td_rc rc = ERR_RC_NOT_SET;
   struct strbuff teststr;
-  MALLOC(&teststr, 7, logbuf);
+  if ((rc = str_malloc(&teststr, 7, logbuf)) != SUCCESS)
+    return rc;
   if ((rc = str_cat(&teststr, "foo", logbuf)) == SUCCESS) {
     if (strcmp(teststr.str, "foo")) 
       rc = ERR_STR_CAT;
