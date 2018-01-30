@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /*Macros for constants*/
 #define INIT_BUF_SIZE 10000
@@ -10,6 +11,17 @@
         logbuf)) != SUCCESS) return rc; } while(0)
 #define TESTCASE(func, logbuf, testcount) do { if ((rc = func(logbuf)) !=  \
     SUCCESS) return rc; testcount++; } while(0) 
+
+/*Message related macros*/
+#define ULONG_MAX_LEN (sizeof(unsigned long)*CHAR_BIT/3 +2)
+#define ERR_MES_STR_COPY "string copy failed : source length %lu > " \
+  "dest allocated space %lu\n"
+#define ERR_MES_STR_COPY_LEN (sizeof ERR_MES_STR_COPY + 2*ULONG_MAX_LEN)
+#define ERR_MES_STR_CAT "string cat failed : source length %lu > " \
+  "dest free space %lu\n"
+#define ERR_MES_STR_CAT_LEN (sizeof ERR_MES_STR_CAT + 2*ULONG_MAX_LEN)
+
+
 /*Return codes*/
 typedef enum {
   SUCCESS,
@@ -44,6 +56,7 @@ td_rc test_str_cat(struct strbuff *logbuf);
 int main(int argc, char** argv){
   td_rc rc = ERR_RC_NOT_SET;
   struct strbuff logbuf;
+  printf("%lu %lu\n",ULONG_MAX_LEN, ERR_MES_STR_CAT_LEN);
   if ((rc = str_malloc(&logbuf, INIT_BUF_SIZE, NULL)) != SUCCESS)
     return rc;
   if ((rc = str_copy(&logbuf, "content-type: text/html\n\n", NULL)) 
@@ -86,9 +99,8 @@ td_rc str_copy(struct strbuff *dest, char *source, struct strbuff *logbuf){
   if (sourcelen > dest->size) {
     /*If if the source string is longer than the destion buffer, 
      * write error to log if supplied otherwise write to standard output*/
-    char errmes[100];
-    sprintf(errmes, "string copy failed : source length %lu > "
-        "dest allocated space %lu\n", (unsigned long)sourcelen, 
+    char errmes[ERR_MES_STR_COPY_LEN];
+    sprintf(errmes, ERR_MES_STR_COPY, (unsigned long)sourcelen, 
         (unsigned long)dest->size); 
     if (!logbuf)
       printf("%s", errmes);
@@ -109,9 +121,8 @@ td_rc str_cat(struct strbuff *dest, char *source, struct strbuff *logbuf){
     /*If the source string is longer than the free space in the 
      * destination buffer, write error to log if supplied otherwise write 
      * to standard output*/
-    char errmes[100];
-    sprintf(errmes, "string concatenation failed : source length %lu > "
-        "dest free space %lu\n", (unsigned long)sourcelen, 
+    char errmes[ERR_MES_STR_CAT_LEN];
+    sprintf(errmes, ERR_MES_STR_CAT, (unsigned long)sourcelen, 
         (unsigned long)destfree); 
     rc = ERR_STR_CAT;
     if (!logbuf)
